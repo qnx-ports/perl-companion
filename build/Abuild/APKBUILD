@@ -1,0 +1,86 @@
+# This can only be compiled natively for QNX
+# Maintainer: Felix Xing <fxing@qnx.com>
+pkgname=perl
+pkgver=5.40.2
+_basever="${pkgver%.*}"
+pkgrel=5
+pkgdesc="The Perl programming language"
+url="https://dev.perl.org/"
+arch="all"
+depends="qnx-io-sock libxcrypt"
+depends_dev="qnx-io-sock-dev libxcrypt-dev"
+makedepends="make $depends_dev"
+license="GPL-3.0-or-later"
+subpackages="$pkgname-dev"
+source="perl5-$pkgver.tar.gz::https://github.com/Perl/perl5/archive/refs/tags/v$pkgver.tar.gz
+        "
+builddir=${srcdir}/perl5-${pkgver}
+# creates empty usr/local/{lib,share} for local sitedirs
+options="!fhs"
+
+
+_privlib=/usr/share/perl5/core_perl
+_archlib=/usr/lib/perl5/"$_basever"/core_perl
+
+build() {
+    if [[ $CBUILD = $CHOST ]]; then
+        echo "No additional arguments are required"
+    else
+        echo "This can not be cross-compiled"
+        exit 1;
+    fi
+
+    ./Configure -des \
+        -Dprefix=/usr -Dvendorprefix=/usr \
+	-Dprivlib=$_privlib \
+	-Darchlib=$_archlib \
+	-Dvendorlib=/usr/share/perl5/vendor_perl \
+	-Dvendorarch=/usr/lib/perl5/"$_basever"/vendor_perl \
+	-Dsiteprefix=/usr/local \
+	-Dsitelib=/usr/local/share/perl5/site_perl \
+	-Dsitearch=/usr/local/lib/perl5/"$_basever"/site_perl \
+        -Accflags="-D_QNX_SOURCE -DNO_LOCALE" -Accflags="-lsocket -lregex -lcrypt" \
+        -Aldflags="-lm -lsocket -lregex -lcrypt" \
+        -Dlddlflags="-shared" \
+        -Duseshrplib \
+        -Duselargefiles \
+        -Dd_semctl_semun \
+        -Dd_crypt \
+        -Dman1dir=/usr/share/man/man1 \
+        -Dman3dir=/usr/share/man/man3 \
+        -Dinstallman1dir=/usr/share/man/man1 \
+        -Dinstallman3dir=/usr/share/man/man3 \
+        -Dman1ext='1' \
+        -Dman3ext='3pm' \
+        -Dcf_by='QNX' \
+        -Dcf_email='oss@qnx.com' \
+        -Ud_csh \
+        -Ud_fpos64_t \
+        -Ud_off64_t \
+        -Dusenm \
+        -Duse64bitint
+
+    make
+}
+
+package() {
+    make DESTDIR="$pkgdir/" install.perl
+}
+
+dev() {
+    amove \
+        $_archlib/Devel \
+        $_privlib/Encode \
+        usr/bin/h2xs \
+        usr/bin/perlivp \
+	usr/bin/enc2xs \
+	usr/bin/xsubpp
+
+    default_dev
+}
+
+
+
+sha512sums="
+3ac0f8367001df5d43d1dee7835760aaf476e75b0509b112be51a92c880276ce3d5d927c4d59401e47fd1b0956161418f44e244a7d4cb239a420d5255e68795d  perl5-5.40.2.tar.gz
+"
